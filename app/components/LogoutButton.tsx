@@ -6,17 +6,17 @@ import { LogOut } from "lucide-react";
 
 export default function LogoutButton() {
   const router = useRouter();
+
   return (
     <button
       onClick={async () => {
         await authClient.signOut();
         router.push("/login");
-        router.refresh();
       }}
-      className="p-2 rounded-md hover:bg-zinc-200 text-zinc-600 transition flex items-center justify-center"
+      className="glass glass-hover p-3 rounded-xl transition-all text-zinc-400 hover:text-red-400 group"
       title="Log out"
     >
-      <LogOut className="w-5 h-5" />
+      <LogOut className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
     </button>
   );
 }

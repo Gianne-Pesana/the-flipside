@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import GridBackground from "./components/GridBackground";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Minimal Flashcards",
-  description: "A simple spaced repetition study tool",
+  title: "The Flipside",
+  description: "A minimalist spaced repetition study tool",
 };
 
 export default function RootLayout({
@@ -15,13 +16,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      {/* Add suppressHydrationWarning right here! */}
+    <html lang="en" className="dark">
       <body
         suppressHydrationWarning
-        className={`${inter.className} bg-zinc-50 text-zinc-900 min-h-screen antialiased`}
+        className={`${inter.className} bg-[#09090b] text-[#fafafa] min-h-screen antialiased selection:bg-zinc-800 selection:text-white`}
       >
-        {children}
+        <GridBackground />
+        <div className="relative z-0">
+          {children}
+        </div>
       </body>
     </html>
   );

@@ -19,14 +19,20 @@ export default async function StudyPage() {
   if (flashcards.length === 0) return redirect("/");
 
   return (
-    <main className="max-w-3xl mx-auto p-6 pt-12 min-h-[80vh] flex flex-col">
-      <Link
-        href="/"
-        className="flex items-center gap-2 text-zinc-500 hover:text-zinc-900 transition mb-10 w-fit font-medium"
-      >
-        <ArrowLeft className="w-4 h-4" /> Back to Dashboard
-      </Link>
-      <div className="flex-1 flex items-center justify-center">
+    <main className="max-w-4xl mx-auto p-6 pt-16 min-h-screen flex flex-col">
+      <header className="mb-12">
+        <Link
+          href="/"
+          className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors w-fit font-medium group"
+        >
+          <div className="p-2 glass glass-hover rounded-lg">
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          </div>
+          Back to Dashboard
+        </Link>
+      </header>
+      
+      <div className="flex-1 flex items-center justify-center pb-24">
         <StudyDeck cards={flashcards} />
       </div>
     </main>

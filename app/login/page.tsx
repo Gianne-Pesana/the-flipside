@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Loader2 } from "lucide-react";
 
 export default function Login() {
   const router = useRouter();
@@ -39,24 +39,35 @@ export default function Login() {
   };
 
   return (
-    <div className="flex flex-col w-full px-8 sm:max-w-md justify-center mx-auto min-h-screen">
-      <div className="bg-white p-8 rounded-2xl border border-zinc-200 shadow-sm">
+    <div className="flex flex-col w-full px-8 sm:max-w-md justify-center mx-auto min-h-screen relative">
+      <div className="glass p-8 rounded-3xl shadow-2xl relative z-10">
         <div className="flex justify-center mb-6">
-          <BookOpen className="w-10 h-10 text-zinc-900" />
+          <div className="p-3 bg-zinc-800/50 rounded-2xl border border-zinc-700/50">
+            <BookOpen className="w-8 h-8 text-zinc-100" />
+          </div>
         </div>
-        <h1 className="text-2xl font-bold text-center mb-6">Study Decks</h1>
+        
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+            The Flipside
+          </h1>
+          <p className="text-zinc-400 text-sm">
+            {isLogin ? "Welcome back to your study space" : "Create an account to start learning"}
+          </p>
+        </div>
 
         <form
           onSubmit={handleSubmit}
-          className="flex flex-col gap-4 text-zinc-800"
+          className="flex flex-col gap-5"
         >
           {!isLogin && (
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium" htmlFor="name">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider ml-1" htmlFor="name">
                 Full Name
               </label>
               <input
-                className="rounded-md px-4 py-2 bg-zinc-50 border border-zinc-200 focus:outline-zinc-400"
+                className="rounded-xl px-4 py-3 bg-zinc-900/50 border border-zinc-800 focus:border-zinc-500 focus:outline-none transition-colors text-white placeholder:text-zinc-600"
+                placeholder="John Doe"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required={!isLogin}
@@ -64,26 +75,28 @@ export default function Login() {
             </div>
           )}
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium" htmlFor="email">
-              Email
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider ml-1" htmlFor="email">
+              Email Address
             </label>
             <input
-              className="rounded-md px-4 py-2 bg-zinc-50 border border-zinc-200 focus:outline-zinc-400"
+              className="rounded-xl px-4 py-3 bg-zinc-900/50 border border-zinc-800 focus:border-zinc-500 focus:outline-none transition-colors text-white placeholder:text-zinc-600"
               type="email"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium" htmlFor="password">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider ml-1" htmlFor="password">
               Password
             </label>
             <input
-              className="rounded-md px-4 py-2 bg-zinc-50 border border-zinc-200 focus:outline-zinc-400"
+              className="rounded-xl px-4 py-3 bg-zinc-900/50 border border-zinc-800 focus:border-zinc-500 focus:outline-none transition-colors text-white placeholder:text-zinc-600"
               type="password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -93,15 +106,19 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoading}
-            className="bg-zinc-900 text-white rounded-md px-4 py-2 mt-2 font-medium hover:bg-zinc-800 transition disabled:opacity-50"
+            className="bg-white text-black rounded-xl px-4 py-3 mt-4 font-semibold hover:bg-zinc-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
           >
-            {isLoading ? "Processing..." : isLogin ? "Sign In" : "Sign Up"}
+            {isLoading ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              isLogin ? "Sign In" : "Create Account"
+            )}
           </button>
 
           <button
             type="button"
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-zinc-500 hover:text-zinc-800 transition text-center mt-2"
+            className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors text-center mt-2"
           >
             {isLogin
               ? "Don't have an account? Sign Up"
@@ -109,9 +126,9 @@ export default function Login() {
           </button>
 
           {errorMsg && (
-            <p className="mt-2 p-3 bg-red-50 text-red-600 text-center text-sm rounded-md border border-red-100">
+            <div className="mt-4 p-3 bg-red-500/10 text-red-400 text-center text-sm rounded-xl border border-red-500/20">
               {errorMsg}
-            </p>
+            </div>
           )}
         </form>
       </div>
