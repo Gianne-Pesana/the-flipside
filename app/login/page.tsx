@@ -4,6 +4,7 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
 import { BookOpen, Loader2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Login() {
   const router = useRouter();
@@ -40,40 +41,65 @@ export default function Login() {
 
   return (
     <div className="flex flex-col w-full px-8 sm:max-w-md justify-center mx-auto min-h-screen relative">
-      <div className="glass p-8 rounded-3xl shadow-2xl relative z-10">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 260, damping: 20 }}
+        className="glass p-8 rounded-3xl shadow-2xl relative z-10 border border-white/10"
+      >
         <div className="flex justify-center mb-6">
-          <div className="p-3 bg-zinc-800/50 rounded-2xl border border-zinc-700/50">
+          <motion.div 
+            whileHover={{ rotate: 10, scale: 1.1 }}
+            className="p-3 bg-zinc-800/50 rounded-2xl border border-zinc-700/50"
+          >
             <BookOpen className="w-8 h-8 text-zinc-100" />
-          </div>
+          </motion.div>
         </div>
         
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">
+          <motion.h1 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-3xl font-bold tracking-tight text-white mb-2"
+          >
             The Flipside
-          </h1>
-          <p className="text-zinc-400 text-sm">
+          </motion.h1>
+          <motion.p 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-zinc-400 text-sm"
+          >
             {isLogin ? "Welcome back to your study space" : "Create an account to start learning"}
-          </p>
+          </motion.p>
         </div>
 
         <form
           onSubmit={handleSubmit}
           className="flex flex-col gap-5"
         >
-          {!isLogin && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider ml-1" htmlFor="name">
-                Full Name
-              </label>
-              <input
-                className="rounded-xl px-4 py-3 bg-zinc-900/50 border border-zinc-800 focus:border-zinc-500 focus:outline-none transition-colors text-white placeholder:text-zinc-600"
-                placeholder="John Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required={!isLogin}
-              />
-            </div>
-          )}
+          <AnimatePresence mode="popLayout">
+            {!isLogin && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="flex flex-col gap-1.5"
+              >
+                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider ml-1" htmlFor="name">
+                  Full Name
+                </label>
+                <input
+                  className="rounded-xl px-4 py-3 bg-zinc-900/50 border border-zinc-800 focus:border-zinc-500 focus:outline-none transition-colors text-white placeholder:text-zinc-600"
+                  placeholder="John Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required={!isLogin}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider ml-1" htmlFor="email">
@@ -103,17 +129,19 @@ export default function Login() {
             />
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={isLoading}
-            className="bg-white text-black rounded-xl px-4 py-3 mt-4 font-semibold hover:bg-zinc-200 transition-all active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 flex items-center justify-center gap-2"
+            className="bg-white text-black rounded-xl px-4 py-3 mt-4 font-semibold hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
               isLogin ? "Sign In" : "Create Account"
             )}
-          </button>
+          </motion.button>
 
           <button
             type="button"
@@ -126,12 +154,16 @@ export default function Login() {
           </button>
 
           {errorMsg && (
-            <div className="mt-4 p-3 bg-red-500/10 text-red-400 text-center text-sm rounded-xl border border-red-500/20">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mt-4 p-3 bg-red-500/10 text-red-400 text-center text-sm rounded-xl border border-red-500/20"
+            >
               {errorMsg}
-            </div>
+            </motion.div>
           )}
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }

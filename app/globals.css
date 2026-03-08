@@ -60,3 +60,21 @@ body {
   pointer-events: none;
   z-index: -1;
 }
+
+/* Hide Next.js / Vercel development toolbar/bubble and indicators */
+[data-vercel-toolbar], 
+#vercel-live-feedback-launcher,
+.vercel-toolbar-container,
+#next-route-announcer,
+[data-nextjs-toast-errors-parent],
+[data-nextjs-indicator],
+[data-nextjs-indicator-wrapper],
+nextjs-portal,
+.next-logo,
+.next-indicator,
+.next-static-indicator {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
