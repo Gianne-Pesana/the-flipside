@@ -1,72 +1,103 @@
 "use client";
 
-import { motion, AnimatePresence, Reorder } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Plus, Sparkles, BookOpen, Loader2, Save } from "lucide-react";
+import { Plus, Sparkles, BookOpen, Loader2, Edit2, Trash2, Check, X } from "lucide-react";
 import LogoutButton from "./LogoutButton";
-import { useOptimistic, useTransition, useRef, useState, useEffect } from "react";
+import { useOptimistic, useTransition, useRef, useState } from "react";
+
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05
+    }
+  }
+};
+
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
 
 export default function DashboardClient({ 
   flashcards, 
   user, 
   addCardAction,
-  updatePositionsAction
+  editCardAction,
+  deleteCardAction
 }: { 
   flashcards: any[], 
   user: any,
   addCardAction: (formData: FormData) => Promise<void>,
-  updatePositionsAction: (ids: string[]) => Promise<void>
+  editCardAction: (formData: FormData) => Promise<void>,
+  deleteCardAction: (id: string) => Promise<void>
 }) {
   const [isPending, startTransition] = useTransition();
-  const [isSaving, setIsSaving] = useState(false);
+  const [editingCard, setEditingCard] = useState<any | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   
-  const [items, setItems] = useState(flashcards);
-
-  useEffect(() => {
-    setItems(flashcards);
-  }, [flashcards]);
-
   const [optimisticCards, addOptimisticCard] = useOptimistic(
-    items,
-    (state, newCard: any) => [newCard, ...state]
+    flashcards,
+    (state, action: { type: 'add' | 'edit' | 'delete', payload: any }) => {
+      switch (action.type) {
+        case 'add':
+          return [action.payload, ...state];
+        case 'edit':
+          return state.map(card => card.id === action.payload.id ? { ...card, ...action.payload } : card);
+        case 'delete':
+          return state.filter(card => card.id !== action.payload);
+        default:
+          return state;
+      }
+    }
   );
 
-  const handleAction = async (formData: FormData) => {
+  const handleAdd = async (formData: FormData) => {
     const front = formData.get("front_text") as string;
     const back = formData.get("back_text") as string;
-    
     if (!front || !back) return;
 
     formRef.current?.reset();
 
     startTransition(async () => {
-      const newCard = {
-        id: Math.random().toString(),
-        front_text: front,
-        back_text: back,
-        created_at: new Date().toISOString(),
-        position: -1 // New cards go to the top
-      };
-      addOptimisticCard(newCard);
+      addOptimisticCard({
+        type: 'add',
+        payload: { id: Math.random().toString(), front_text: front, back_text: back, created_at: new Date().toISOString() }
+      });
       await addCardAction(formData);
     });
   };
 
-  const handleReorder = (newOrder: any[]) => {
-    setItems(newOrder);
+  const handleEdit = async (formData: FormData) => {
+    const id = formData.get("id") as string;
+    const front = formData.get("front_text") as string;
+    const back = formData.get("back_text") as string;
+    if (!id || !front || !back) return;
+
+    setEditingCard(null);
+
+    startTransition(async () => {
+      addOptimisticCard({
+        type: 'edit',
+        payload: { id, front_text: front, back_text: back }
+      });
+      await editCardAction(formData);
+    });
   };
 
-  const saveOrder = async () => {
-    setIsSaving(true);
-    try {
-      await updatePositionsAction(items.map(i => i.id));
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this card?")) return;
 
-  const hasOrderChanged = JSON.stringify(items.map(i => i.id)) !== JSON.stringify(flashcards.map(i => i.id));
+    startTransition(async () => {
+      addOptimisticCard({
+        type: 'delete',
+        payload: id
+      });
+      await deleteCardAction(id);
+    });
+  };
 
   return (
     <main className="max-w-5xl mx-auto p-6 pt-16 pb-24">
@@ -91,19 +122,7 @@ export default function DashboardClient({
         </div>
         
         <div className="flex items-center gap-3 w-full sm:w-auto">
-          {hasOrderChanged && (
-            <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={saveOrder}
-              disabled={isSaving}
-              className="flex-1 sm:flex-none bg-blue-600 text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2 hover:bg-blue-500 shadow-lg shadow-blue-500/20"
-            >
-              {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save Order
-            </motion.button>
-          )}
-          {items.length > 0 && (
+          {optimisticCards.length > 0 && (
             <Link
               href="/study"
               className="flex-1 sm:flex-none glass glass-hover px-6 py-3 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 group"
@@ -129,7 +148,7 @@ export default function DashboardClient({
           </h2>
           <form 
             ref={formRef}
-            action={handleAction} 
+            action={handleAdd} 
             className="grid grid-cols-1 md:grid-cols-7 gap-4"
           >
             <div className="md:col-span-3">
@@ -167,12 +186,11 @@ export default function DashboardClient({
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-zinc-400 flex items-center gap-2">
-            Recent Cards <span className="bg-zinc-800 text-zinc-300 text-xs px-2 py-0.5 rounded-full">{items.length}</span>
+            Recent Cards <span className="bg-zinc-800 text-zinc-300 text-xs px-2 py-0.5 rounded-full">{optimisticCards.length}</span>
           </h2>
-          <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Drag cards to reorder</p>
         </div>
 
-        {items.length === 0 ? (
+        {optimisticCards.length === 0 ? (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -186,52 +204,137 @@ export default function DashboardClient({
             </p>
           </motion.div>
         ) : (
-          <Reorder.Group 
-            axis="y" 
-            values={items} 
-            onReorder={handleReorder}
+          <motion.div 
+            variants={container}
+            initial="hidden"
+            animate="show"
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
           >
             <AnimatePresence mode="popLayout">
-              {items.map((card) => (
-                <Reorder.Item
+              {optimisticCards.map((card) => (
+                <motion.div
                   key={card.id}
-                  value={card}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  whileDrag={{ 
-                    scale: 1.05, 
-                    zIndex: 50,
-                    boxShadow: "0 20px 25px -5px rgb(0 0 0 / 0.5), 0 8px 10px -6px rgb(0 0 0 / 0.5)" 
-                  }}
-                  className="glass glass-hover p-6 rounded-2xl flex flex-col justify-between min-h-[160px] group transition-all cursor-grab active:cursor-grabbing relative"
+                  variants={item}
+                  layout
+                  className="glass p-6 rounded-2xl flex flex-col justify-between min-h-[160px] group transition-all relative overflow-hidden"
                 >
-                  <div className="relative z-10">
-                    <div className="w-8 h-1 bg-zinc-800 rounded-full mb-4 group-hover:bg-zinc-500 transition-colors" />
+                  <div>
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="w-8 h-1 bg-zinc-800 rounded-full group-hover:bg-zinc-500 transition-colors" />
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={() => setEditingCard(card)}
+                          className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-all"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(card.id)}
+                          className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-red-400 transition-all"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
                     <p className="text-lg font-medium text-white leading-snug">
                       {card.front_text}
                     </p>
                   </div>
-                  <div className="mt-6 pt-4 border-t border-zinc-800/50 relative z-10">
+                  <div className="mt-6 pt-4 border-t border-zinc-800/50">
                     <p className="text-zinc-400 text-sm line-clamp-2 italic">
                       {card.back_text}
                     </p>
                   </div>
-                  
-                  {/* Subtle drag indicator that appears on hover */}
-                  <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="flex gap-0.5">
-                      <div className="w-1 h-1 bg-zinc-600 rounded-full" />
-                      <div className="w-1 h-1 bg-zinc-600 rounded-full" />
-                    </div>
-                  </div>
-                </Reorder.Item>
+                </motion.div>
               ))}
             </AnimatePresence>
-          </Reorder.Group>
+          </motion.div>
         )}
       </section>
+
+      {/* Edit Modal */}
+      <AnimatePresence>
+        {editingCard && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingCard(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="glass w-full max-w-lg p-8 rounded-[2.5rem] relative z-10 shadow-2xl border border-white/10"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-zinc-800 rounded-xl">
+                    <Edit2 className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-white tracking-tight">Edit Card</h2>
+                </div>
+                <button
+                  onClick={() => setEditingCard(null)}
+                  className="p-2 hover:bg-zinc-800 rounded-full text-zinc-400 transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form action={handleEdit} className="flex flex-col gap-6">
+                <input type="hidden" name="id" value={editingCard.id} />
+                
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">
+                    Front side (Question)
+                  </label>
+                  <input
+                    name="front_text"
+                    defaultValue={editingCard.front_text}
+                    autoFocus
+                    autoComplete="off"
+                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-white focus:outline-none focus:border-zinc-500 transition-colors"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-zinc-500 uppercase tracking-widest ml-1">
+                    Back side (Answer)
+                  </label>
+                  <textarea
+                    name="back_text"
+                    defaultValue={editingCard.back_text}
+                    autoComplete="off"
+                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 text-zinc-200 focus:outline-none focus:border-zinc-500 min-h-[120px] resize-none transition-colors"
+                  />
+                </div>
+
+                <div className="flex gap-4 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => setEditingCard(null)}
+                    className="flex-1 py-4 glass glass-hover text-zinc-300 rounded-2xl font-bold transition-all active:scale-[0.98]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-4 bg-white text-black rounded-2xl font-bold hover:bg-zinc-200 transition-all active:scale-[0.98] shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Check className="w-5 h-5" />
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }

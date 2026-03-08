@@ -10,7 +10,7 @@ export default async function Dashboard() {
   if (!session) return redirect("/login");
 
   const result = await pool.query(
-    "SELECT * FROM flashcards WHERE user_id = $1 ORDER BY position ASC, created_at DESC",
+    "SELECT * FROM flashcards WHERE user_id = $1 ORDER BY created_at DESC",
     [session.user.id],
   );
   const flashcards = result.rows;
@@ -26,35 +26,45 @@ export default async function Dashboard() {
     const back = formData.get("back_text") as string;
 
     if (front && back) {
-      // Get max position
-      const maxRes = await pool.query(
-        "SELECT MAX(position) as max_pos FROM flashcards WHERE user_id = $1",
-        [currentSession.user.id]
-      );
-      const nextPos = (maxRes.rows[0].max_pos || 0) + 1;
-
       await pool.query(
-        "INSERT INTO flashcards (user_id, front_text, back_text, position) VALUES ($1, $2, $3, $4)",
-        [currentSession.user.id, front, back, nextPos],
+        "INSERT INTO flashcards (user_id, front_text, back_text) VALUES ($1, $2, $3)",
+        [currentSession.user.id, front, back],
       );
       revalidatePath("/");
     }
   };
 
-  const updatePositions = async (ids: string[]) => {
+  const editCard = async (formData: FormData) => {
     "use server";
     const currentSession = await auth.api.getSession({
       headers: await headers(),
     });
     if (!currentSession) return;
 
-    // Bulk update positions
-    for (let i = 0; i < ids.length; i++) {
+    const id = formData.get("id") as string;
+    const front = formData.get("front_text") as string;
+    const back = formData.get("back_text") as string;
+
+    if (id && front && back) {
       await pool.query(
-        "UPDATE flashcards SET position = $1 WHERE id = $2 AND user_id = $3",
-        [i, ids[i], currentSession.user.id]
+        "UPDATE flashcards SET front_text = $1, back_text = $2 WHERE id = $3 AND user_id = $4",
+        [front, back, id, currentSession.user.id],
       );
+      revalidatePath("/");
     }
+  };
+
+  const deleteCard = async (id: string) => {
+    "use server";
+    const currentSession = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!currentSession) return;
+
+    await pool.query(
+      "DELETE FROM flashcards WHERE id = $1 AND user_id = $2",
+      [id, currentSession.user.id],
+    );
     revalidatePath("/");
   };
 
@@ -63,7 +73,8 @@ export default async function Dashboard() {
       flashcards={flashcards} 
       user={session.user} 
       addCardAction={addCard} 
-      updatePositionsAction={updatePositions}
+      editCardAction={editCard}
+      deleteCardAction={deleteCard}
     />
   );
 }
