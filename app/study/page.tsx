@@ -1,20 +1,17 @@
 import { auth } from "@/lib/auth";
-import { pool } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import StudyDeck from "./StudyDeck";
 import { ArrowLeft } from "lucide-react";
+import { getFlashcardsByUserId } from "@/lib/dal/flashcards";
 
 export default async function StudyPage() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return redirect("/login");
 
-  const result = await pool.query(
-    "SELECT * FROM flashcards WHERE user_id = $1 ORDER BY created_at DESC",
-    [session.user.id],
-  );
-  const flashcards = result.rows;
+  // Use DAL for fetching
+  const flashcards = await getFlashcardsByUserId(session.user.id);
 
   if (flashcards.length === 0) return redirect("/");
 

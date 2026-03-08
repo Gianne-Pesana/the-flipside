@@ -1,19 +1,21 @@
 import { auth } from "@/lib/auth";
-import { pool } from "@/lib/db";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import DashboardClient from "./components/DashboardClient";
+import { 
+  getFlashcardsByUserId, 
+  createFlashcard, 
+  updateFlashcard, 
+  deleteFlashcard 
+} from "@/lib/dal/flashcards";
 
 export default async function Dashboard() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return redirect("/login");
 
-  const result = await pool.query(
-    "SELECT * FROM flashcards WHERE user_id = $1 ORDER BY created_at DESC",
-    [session.user.id],
-  );
-  const flashcards = result.rows;
+  // Use DAL for fetching
+  const flashcards = await getFlashcardsByUserId(session.user.id);
 
   const addCard = async (formData: FormData) => {
     "use server";
@@ -26,10 +28,8 @@ export default async function Dashboard() {
     const back = formData.get("back_text") as string;
 
     if (front && back) {
-      await pool.query(
-        "INSERT INTO flashcards (user_id, front_text, back_text) VALUES ($1, $2, $3)",
-        [currentSession.user.id, front, back],
-      );
+      // Use DAL for creating
+      await createFlashcard(currentSession.user.id, front, back);
       revalidatePath("/");
     }
   };
@@ -46,10 +46,8 @@ export default async function Dashboard() {
     const back = formData.get("back_text") as string;
 
     if (id && front && back) {
-      await pool.query(
-        "UPDATE flashcards SET front_text = $1, back_text = $2 WHERE id = $3 AND user_id = $4",
-        [front, back, id, currentSession.user.id],
-      );
+      // Use DAL for updating
+      await updateFlashcard(currentSession.user.id, id, front, back);
       revalidatePath("/");
     }
   };
@@ -61,10 +59,8 @@ export default async function Dashboard() {
     });
     if (!currentSession) return;
 
-    await pool.query(
-      "DELETE FROM flashcards WHERE id = $1 AND user_id = $2",
-      [id, currentSession.user.id],
-    );
+    // Use DAL for deleting
+    await deleteFlashcard(currentSession.user.id, id);
     revalidatePath("/");
   };
 

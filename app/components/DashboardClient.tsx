@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { Plus, Sparkles, BookOpen, Loader2, Edit2, Trash2, Check, X } from "lucide-react";
 import LogoutButton from "./LogoutButton";
+import ConfirmationModal from "./ConfirmationModal";
 import { useOptimistic, useTransition, useRef, useState } from "react";
 
 const container = {
@@ -36,6 +37,7 @@ export default function DashboardClient({
 }) {
   const [isPending, startTransition] = useTransition();
   const [editingCard, setEditingCard] = useState<any | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   
   const [optimisticCards, addOptimisticCard] = useOptimistic(
@@ -87,8 +89,9 @@ export default function DashboardClient({
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this card?")) return;
+  const handleDelete = async () => {
+    if (!deletingId) return;
+    const id = deletingId;
 
     startTransition(async () => {
       addOptimisticCard({
@@ -97,6 +100,7 @@ export default function DashboardClient({
       });
       await deleteCardAction(id);
     });
+    setDeletingId(null);
   };
 
   return (
@@ -190,27 +194,30 @@ export default function DashboardClient({
           </h2>
         </div>
 
-        {optimisticCards.length === 0 ? (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="glass p-12 rounded-3xl text-center border-dashed"
-          >
-            <p className="text-zinc-500 mb-2 italic">
-              "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice."
-            </p>
-            <p className="text-zinc-400 font-medium">
-              Start by creating your first flashcard above.
-            </p>
-          </motion.div>
-        ) : (
-          <motion.div 
-            variants={container}
-            initial="hidden"
-            animate="show"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="popLayout" initial={false}>
+          {optimisticCards.length === 0 ? (
+            <motion.div 
+              key="empty-state"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="glass p-12 rounded-3xl text-center border-dashed"
+            >
+              <p className="text-zinc-500 mb-2 italic">
+                "The capacity to learn is a gift; the ability to learn is a skill; the willingness to learn is a choice."
+              </p>
+              <p className="text-zinc-400 font-medium">
+                Start by creating your first flashcard above.
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="grid-state"
+              variants={container}
+              initial="hidden"
+              animate="show"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
               {optimisticCards.map((card) => (
                 <motion.div
                   key={card.id}
@@ -230,7 +237,7 @@ export default function DashboardClient({
                           <Edit2 className="w-3.5 h-3.5" />
                         </button>
                         <button
-                          onClick={() => handleDelete(card.id)}
+                          onClick={() => setDeletingId(card.id)}
                           className="p-1.5 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-red-400 transition-all"
                           title="Delete"
                         >
@@ -249,9 +256,9 @@ export default function DashboardClient({
                   </div>
                 </motion.div>
               ))}
-            </AnimatePresence>
-          </motion.div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* Edit Modal */}
@@ -335,6 +342,17 @@ export default function DashboardClient({
           </div>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={!!deletingId}
+        onClose={() => setDeletingId(null)}
+        onConfirm={handleDelete}
+        title="Delete Flashcard"
+        description="Are you sure you want to delete this flashcard? This action cannot be undone."
+        confirmText="Delete"
+        variant="danger"
+      />
     </main>
   );
 }
